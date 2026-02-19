@@ -16,9 +16,7 @@ export default function Dashboard() {
     const [successMessage, setSuccessMessage] = useState("");
     const [shake, setShake] = useState(false);
 
-    // -----------------------------
     // Session + Realtime
-    // -----------------------------
     useEffect(() => {
         let channel: any;
 
@@ -35,7 +33,6 @@ export default function Dashboard() {
             setUser(session.user);
             await fetchBookmarks(session.user.id);
 
-            // ✅ TRUE REALTIME SYNC
             channel = supabase
                 .channel("bookmarks-channel")
                 .on(
@@ -91,15 +88,27 @@ export default function Dashboard() {
         if (data) setBookmarks(data);
     }
 
-    // -----------------------------
-    // URL Helpers
-    // -----------------------------
+    //UPDATED URL Normalization
     function normalizeUrl(value: string) {
-        let trimmed = value.trim();
+        let trimmed = value.trim().toLowerCase();
+
+        // Add protocol if missing
         if (!/^https?:\/\//i.test(trimmed)) {
             trimmed = "https://" + trimmed;
         }
-        return trimmed;
+
+        try {
+            const parsed = new URL(trimmed);
+
+            // Add www if missing
+            if (!parsed.hostname.startsWith("www.")) {
+                parsed.hostname = "www." + parsed.hostname;
+            }
+
+            return parsed.toString();
+        } catch {
+            return trimmed;
+        }
     }
 
     function isValidDomain(urlString: string) {
@@ -125,9 +134,7 @@ export default function Dashboard() {
         url.trim().length > 0 &&
         isValidDomain(normalizeUrl(url));
 
-    // -----------------------------
     // Add Bookmark
-    // -----------------------------
     async function handleAddBookmark() {
         setErrorMessage("");
         setSuccessMessage("");
@@ -155,7 +162,6 @@ export default function Dashboard() {
         if (error) {
             triggerError(error.message);
         } else if (data) {
-            // ✅ Instant update (same tab)
             setBookmarks((prev) => [data, ...prev]);
             setTitle("");
             setUrl("");
@@ -163,9 +169,7 @@ export default function Dashboard() {
         }
     }
 
-    // -----------------------------
     // Delete Bookmark
-    // -----------------------------
     async function handleDelete(id: string) {
         const { error } = await supabase
             .from("bookmarks")
@@ -173,15 +177,12 @@ export default function Dashboard() {
             .eq("id", id);
 
         if (!error) {
-            // ✅ Instant update (same tab)
             setBookmarks((prev) => prev.filter((b) => b.id !== id));
             setSuccessMessage("Bookmark deleted successfully!");
         }
     }
 
-    // -----------------------------
     // Logout
-    // -----------------------------
     async function handleLogout() {
         await supabase.auth.signOut();
         router.push("/");
@@ -199,7 +200,6 @@ export default function Dashboard() {
         <div className="min-h-screen bg-gray-100 p-10">
             <div className="max-w-4xl mx-auto">
 
-                {/* Header */}
                 <div className="flex justify-between items-center mb-10">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">
@@ -219,7 +219,6 @@ export default function Dashboard() {
                     </button>
                 </div>
 
-                {/* Messages */}
                 {errorMessage && (
                     <div className={`mb-4 bg-red-100 border border-red-300 text-red-600 p-3 rounded ${shake ? "shake" : ""}`}>
                         {errorMessage}
@@ -232,7 +231,6 @@ export default function Dashboard() {
                     </div>
                 )}
 
-                {/* Add Bookmark */}
                 <div className="bg-white p-8 rounded-2xl shadow-md mb-10">
                     <h2 className="text-2xl font-semibold text-gray-800 mb-6">
                         Add New Bookmark
@@ -268,7 +266,6 @@ export default function Dashboard() {
                     </button>
                 </div>
 
-                {/* Bookmark List */}
                 <div className="grid gap-5">
                     {bookmarks.length === 0 ? (
                         <p className="text-gray-500 text-center">
